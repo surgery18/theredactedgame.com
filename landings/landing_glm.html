@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>B.O.R.I. // TERMINAL_ZERO</title>
+
+		<!-- Fonts: Space Mono for data, Oswald for headers -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+			rel="stylesheet" />
+
+		<style>
+			:root {
+				--bg-dark: #030304;
+				--bg-panel: rgba(20, 20, 23, 0.7);
+				--text-main: #e0e0e0;
+				--text-dim: #6b7280;
+
+				--accent-red: #ff2a2a;
+				--accent-red-glow: rgba(255, 42, 42, 0.4);
+				--accent-cyan: #00f0ff;
+				--accent-gold: #ffc107;
+
+				--font-head: "Oswald", sans-serif;
+				--font-mono: "Space Mono", monospace;
+
+				--ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+			}
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+				cursor: none; /* Custom cursor implementation */
+			}
+
+			html {
+				scroll-behavior: smooth;
+			}
+
+			body {
+				background-color: var(--bg-dark);
+				color: var(--text-main);
+				font-family: var(--font-mono);
+				line-height: 1.6;
+				overflow-x: hidden;
+				min-height: 100vh;
+			}
+
+			/* --- Custom Cursor --- */
+			#cursor-dot,
+			#cursor-ring {
+				position: fixed;
+				top: 0;
+				left: 0;
+				transform: translate(-50%, -50%);
+				border-radius: 50%;
+				z-index: 9999;
+				pointer-events: none;
+			}
+
+			#cursor-dot {
+				width: 8px;
+				height: 8px;
+				background-color: var(--accent-red);
+			}
+
+			#cursor-ring {
+				width: 40px;
+				height: 40px;
+				border: 1px solid var(--text-dim);
+				transition: width 0.2s, height 0.2s, background-color 0.2s;
+			}
+
+			body:hover #cursor-ring.hovered {
+				width: 60px;
+				height: 60px;
+				background-color: rgba(255, 42, 42, 0.1);
+				border-color: var(--accent-red);
+			}
+
+			/* --- Canvas Background --- */
+			#data-stream {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				z-index: -1;
+				opacity: 0.3;
+			}
+
+			/* --- Layout Utilities --- */
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+				padding: 0 2rem;
+				position: relative;
+				z-index: 10;
+			}
+
+			section {
+				padding: 8rem 0;
+				position: relative;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+			}
+
+			/* --- CRT/Scanline Effect Overlay --- */
+			.scanlines {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100vw;
+				height: 100vh;
+				background: linear-gradient(
+					to bottom,
+					rgba(255, 255, 255, 0),
+					rgba(255, 255, 255, 0) 50%,
+					rgba(0, 0, 0, 0.1) 50%,
+					rgba(0, 0, 0, 0.1)
+				);
+				background-size: 100% 4px;
+				pointer-events: none;
+				z-index: 9000;
+				opacity: 0.6;
+			}
+
+			/* --- Top Bar --- */
+			.status-bar {
+				background: #000;
+				border-bottom: 1px solid var(--accent-red);
+				padding: 0.5rem 0;
+				font-size: 0.75rem;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+
+			.status-bar .blink {
+				animation: blinker 1s linear infinite;
+				color: var(--accent-red);
+				font-weight: bold;
+			}
+
+			@keyframes blinker {
+				50% {
+					opacity: 0;
+				}
+			}
+
+			/* --- Navigation --- */
+			nav {
+				position: sticky;
+				top: 0;
+				background: rgba(3, 3, 4, 0.85);
+				backdrop-filter: blur(12px);
+				border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+				z-index: 1000;
+				padding: 1rem 0;
+				transition: border-color 0.3s;
+			}
+
+			nav.scrolled {
+				border-bottom-color: var(--accent-red);
+			}
+
+			.nav-inner {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+
+			.nav-logo {
+				font-family: var(--font-head);
+				font-size: 1.5rem;
+				font-weight: 700;
+				color: var(--text-main);
+				text-decoration: none;
+				letter-spacing: 0.15em;
+				position: relative;
+			}
+
+			.nav-logo::after {
+				content: "v.5.0.2";
+				position: absolute;
+				font-size: 0.6rem;
+				bottom: -5px;
+				right: 0;
+				font-family: var(--font-mono);
+				color: var(--text-dim);
+			}
+
+			.nav-controls {
+				display: flex;
+				gap: 2rem;
+				align-items: center;
+			}
+
+			.override-switch {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				font-size: 0.7rem;
+				text-transform: uppercase;
+				border: 1px solid var(--accent-red);
+				padding: 0.4rem 0.8rem;
+				color: var(--accent-red);
+				transition: all 0.3s;
+			}
+
+			.override-switch:hover {
+				background: rgba(255, 42, 42, 0.1);
+			}
+
+			.toggle-checkbox {
+				appearance: none;
+				width: 30px;
+				height: 16px;
+				background: #333;
+				border-radius: 20px;
+				position: relative;
+				outline: none;
+			}
+
+			.toggle-checkbox::after {
+				content: "";
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				width: 12px;
+				height: 12px;
+				background: #fff;
+				border-radius: 50%;
+				transition: 0.3s;
+			}
+
+			.toggle-checkbox:checked {
+				background: var(--accent-red);
+			}
+
+			.toggle-checkbox:checked::after {
+				transform: translateX(14px);
+			}
+
+			/* --- Hero Section --- */
+			.hero {
+				min-height: 90vh;
+				display: flex;
+				align-items: center;
+				justify-content: flex-start;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.hero::before {
+				content: "";
+				position: absolute;
+				right: 0;
+				top: 0;
+				width: 50%;
+				height: 100%;
+				background: radial-gradient(
+					circle at center,
+					rgba(255, 42, 42, 0.1),
+					transparent 70%
+				);
+				z-index: -1;
+				clip-path: polygon(20% 0, 100% 0, 100% 100%, 0% 100%);
+			}
+
+			.hero-content {
+				max-width: 800px;
+				position: relative;
+			}
+
+			.hero-badge {
+				display: inline-block;
+				border: 1px solid var(--accent-cyan);
+				color: var(--accent-cyan);
+				padding: 0.5rem 1rem;
+				font-size: 0.8rem;
+				margin-bottom: 2rem;
+				text-transform: uppercase;
+				letter-spacing: 0.2em;
+				background: rgba(0, 240, 255, 0.05);
+			}
+
+			h1.glitch-title {
+				font-family: var(--font-head);
+				font-size: clamp(4rem, 10vw, 8rem);
+				line-height: 0.9;
+				font-weight: 700;
+				text-transform: uppercase;
+				color: var(--text-main);
+				position: relative;
+				mix-blend-mode: lighten;
+			}
+
+			/* Glitch Layers */
+			h1.glitch-title::before,
+			h1.glitch-title::after {
+				content: attr(data-text);
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				opacity: 0.8;
+			}
+
+			h1.glitch-title::before {
+				color: var(--accent-cyan);
+				z-index: -1;
+				clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+				animation: glitch-anim-1 3s infinite linear alternate-reverse;
+			}
+
+			h1.glitch-title::after {
+				color: var(--accent-red);
+				z-index: -2;
+				clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%);
+				animation: glitch-anim-2 2.5s infinite linear alternate-reverse;
+			}
+
+			@keyframes glitch-anim-1 {
+				0% {
+					transform: translate(0);
+				}
+				20% {
+					transform: translate(-2px, 2px);
+				}
+				40% {
+					transform: translate(-2px, -2px);
+				}
+				60% {
+					transform: translate(2px, 2px);
+				}
+				80% {
+					transform: translate(2px, -2px);
+				}
+				100% {
+					transform: translate(0);
+				}
+			}
+
+			@keyframes glitch-anim-2 {
+				0% {
+					transform: translate(0);
+				}
+				20% {
+					transform: translate(2px, -2px);
+				}
+				40% {
+					transform: translate(2px, 2px);
+				}
+				60% {
+					transform: translate(-2px, -2px);
+				}
+				80% {
+					transform: translate(-2px, 2px);
+				}
+				100% {
+					transform: translate(0);
+				}
+			}
+
+			/* --- Interactive Redaction --- */
+			.redact {
+				background: #000;
+				color: #000;
+				padding: 0 4px;
+				transition: all 0.2s ease;
+				user-select: none;
+				position: relative;
+			}
+
+			.redact:hover {
+				background: transparent;
+				color: var(--accent-red);
+				text-shadow: 0 0 5px var(--accent-red-glow);
+			}
+
+			/* When Override is Active (via JS class on body) */
+			body.override-active .redact {
+				background: transparent;
+				color: var(--accent-red);
+				text-decoration: line-through;
+				opacity: 0.7;
+			}
+
+			/* Invisible UV Text */
+			.uv-text {
+				opacity: 0.03;
+				color: var(--accent-cyan);
+				transition: opacity 0.5s;
+				font-style: italic;
+			}
+
+			body.uv-mode .uv-text {
+				opacity: 1;
+				text-shadow: 0 0 10px var(--accent-cyan);
+			}
+
+			.hero-desc {
+				font-size: 1.2rem;
+				max-width: 600px;
+				margin: 2rem 0 3rem 0;
+				color: var(--text-dim);
+				border-left: 2px solid var(--accent-red);
+				padding-left: 1.5rem;
+			}
+
+			.btn-main {
+				display: inline-block;
+				background: transparent;
+				color: var(--accent-red);
+				border: 1px solid var(--accent-red);
+				padding: 1rem 2.5rem;
+				text-decoration: none;
+				text-transform: uppercase;
+				font-weight: bold;
+				font-family: var(--font-head);
+				letter-spacing: 0.15em;
+				position: relative;
+				overflow: hidden;
+				transition: all 0.3s;
+			}
+
+			.btn-main::before {
+				content: "";
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 0%;
+				height: 100%;
+				background: var(--accent-red);
+				z-index: -1;
+				transition: width 0.3s var(--ease-out);
+			}
+
+			.btn-main:hover {
+				color: #000;
+			}
+
+			.btn-main:hover::before {
+				width: 100%;
+			}
+
+			/* --- Assignment / Dossier --- */
+			.dossier-wrapper {
+				background: var(--bg-panel);
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				padding: 3rem;
+				position: relative;
+				box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+				clip-path: polygon(
+					0 0,
+					100% 0,
+					100% calc(100% - 30px),
+					calc(100% - 30px) 100%,
+					0 100%
+				);
+			}
+
+			.dossier-header {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				margin-bottom: 2rem;
+				padding-bottom: 1rem;
+				border-bottom: 1px dashed var(--text-dim);
+			}
+
+			.typewriter-text {
+				white-space: pre-wrap;
+				font-size: 1rem;
+				line-height: 1.8;
+			}
+
+			.cursor-blink {
+				display: inline-block;
+				width: 10px;
+				height: 1em;
+				background-color: var(--accent-cyan);
+				animation: blinker 1s step-end infinite;
+				vertical-align: middle;
+			}
+
+			/* --- Tools Grid --- */
+			.grid-layout {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+				gap: 2rem;
+			}
+
+			.tool-card {
+				background: rgba(255, 255, 255, 0.02);
+				border: 1px solid rgba(255, 255, 255, 0.05);
+				padding: 2rem;
+				transition: all 0.4s;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.tool-card:hover {
+				border-color: var(--accent-cyan);
+				transform: translateY(-5px);
+				background: rgba(0, 240, 255, 0.02);
+			}
+
+			.tool-card h3 {
+				font-family: var(--font-head);
+				font-size: 1.4rem;
+				margin-bottom: 1rem;
+				color: var(--text-main);
+			}
+
+			.tool-card .icon {
+				font-size: 2rem;
+				margin-bottom: 1rem;
+				display: block;
+			}
+
+			/* Active Tool Logic */
+			.tool-card.active-tool {
+				border-color: var(--accent-cyan);
+				background: rgba(0, 240, 255, 0.05);
+				box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+			}
+
+			.tool-card.active-tool::after {
+				content: "ACTIVE";
+				position: absolute;
+				top: 10px;
+				right: 10px;
+				font-size: 0.6rem;
+				color: var(--accent-cyan);
+				border: 1px solid var(--accent-cyan);
+				padding: 2px 6px;
+			}
+
+			/* --- Archives / Folders --- */
+			.archive-item {
+				display: flex;
+				align-items: center;
+				background: #0a0a0a;
+				padding: 1.5rem;
+				margin-bottom: 1rem;
+				border-left: 3px solid var(--text-dim);
+				transition: all 0.3s;
+				cursor: pointer;
+			}
+
+			.archive-item:hover {
+				border-left-color: var(--accent-gold);
+				padding-left: 2rem;
+				background: #111;
+			}
+
+			.archive-meta {
+				min-width: 100px;
+				font-size: 0.8rem;
+				color: var(--text-dim);
+			}
+
+			.archive-title {
+				font-family: var(--font-head);
+				font-size: 1.2rem;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+			}
+
+			.archive-status {
+				margin-left: auto;
+				font-size: 0.8rem;
+				color: var(--accent-red);
+			}
+
+			/* --- Footer --- */
+			footer {
+				text-align: center;
+				padding: 4rem 0;
+				border-top: 1px solid rgba(255, 255, 255, 0.05);
+				margin-top: 4rem;
+			}
+
+			.footer-logo {
+				font-family: var(--font-head);
+				font-size: 3rem;
+				color: #222;
+				user-select: none;
+			}
+
+			.footer-logo:hover {
+				color: #333;
+			}
+
+			/* --- Responsive --- */
+			@media (max-width: 768px) {
+				h1.glitch-title {
+					font-size: 16vw;
+				}
+				.dossier-header {
+					grid-template-columns: 1fr;
+				}
+				.nav-controls {
+					gap: 1rem;
+				}
+				.override-switch span {
+					display: none;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<!-- Canvas Background -->
+		<canvas id="data-stream"></canvas>
+		<div class="scanlines"></div>
+
+		<!-- Custom Cursor -->
+		<div id="cursor-dot"></div>
+		<div id="cursor-ring"></div>
+
+		<!-- Status Bar -->
+		<div class="status-bar container">
+			<span>SYS: ONLINE</span>
+			<span class="blink">/// UNSECURED CONNECTION ///</span>
+			<span>ID: GUEST-892</span>
+		</div>
+
+		<!-- Navigation -->
+		<nav id="navbar">
+			<div class="container nav-inner">
+				<a href="#" class="nav-logo hover-trigger">B.O.R.I.</a>
+				<div class="nav-controls">
+					<div class="override-switch hover-trigger" id="uv-switch">
+						<span>UV FILTER</span>
+						<input type="checkbox" class="toggle-checkbox" />
+					</div>
+					<div
+						class="override-switch hover-trigger"
+						style="border-color: #fff; color: #fff">
+						<span>DECYPHER</span>
+						<input
+							type="checkbox"
+							class="toggle-checkbox"
+							id="override-toggle" />
+					</div>
+				</div>
+			</div>
+		</nav>
+
+		<!-- Hero Section -->
+		<section class="hero">
+			<div class="container hero-content">
+				<div class="hero-badge">Classified Level 5</div>
+				<h1 class="glitch-title" data-text="REDACTED">REDACTED</h1>
+
+				<div class="hero-desc">
+					We control the narrative. We manipulate the truth.
+					<span class="uv-text"
+						>// The public sees only what we allow them to see //</span
+					>
+					<br /><br />
+					Welcome to the
+					<span class="redact">Bureau of Records Integrity</span>.
+				</div>
+
+				<a href="#assignment" class="btn-main hover-trigger"
+					>Initialize Protocol</a
+				>
+			</div>
+		</section>
+
+		<!-- Assignment Section -->
+		<section id="assignment">
+			<div class="container">
+				<div class="dossier-wrapper">
+					<div class="dossier-header">
+						<div>
+							<strong style="display: block; color: var(--text-dim)"
+								>TO:</strong
+							>
+							<span>ANALYST CH-42</span>
+						</div>
+						<div style="text-align: right">
+							<strong style="display: block; color: var(--text-dim)"
+								>REF:</strong
+							>
+							<span style="color: var(--accent-cyan)">OMEGA-99</span>
+						</div>
+					</div>
+
+					<div class="typewriter-container">
+						<div class="typewriter-text" id="typewriter"></div>
+						<span class="cursor-blink"></span>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- Tools Section -->
+		<section id="tools">
+			<div class="container">
+				<h2
+					style="
+						font-family: var(--font-head);
+						font-size: 2.5rem;
+						margin-bottom: 2rem;
+						text-transform: uppercase;
+					">
+					Field Tools
+				</h2>
+				<div class="grid-layout">
+					<div class="tool-card hover-trigger">
+						<span class="icon">⬛</span>
+						<h3>Marker</h3>
+						<p style="color: var(--text-dim); font-size: 0.9rem">
+							Standard issue black-out tool. Hover over redacted text to reveal,
+							or use DECYPHER mode to bypass.
+						</p>
+					</div>
+
+					<div class="tool-card hover-trigger" id="uv-card">
+						<span class="icon">💡</span>
+						<h3>UV Spectrometer</h3>
+						<p style="color: var(--text-dim); font-size: 0.9rem">
+							Reveals hidden metadata and ghost notes left by previous analysts.
+							Click "UV FILTER" in nav to activate.
+						</p>
+					</div>
+
+					<div class="tool-card hover-trigger">
+						<span class="icon">🖍</span>
+						<h3>Highlighter</h3>
+						<p style="color: var(--text-dim); font-size: 0.9rem">
+							Flags anomalies in the data stream. Use sparingly to avoid
+							detection by the audit algorithm.
+						</p>
+					</div>
+
+					<div class="tool-card hover-trigger">
+						<span class="icon">🚫</span>
+						<h3>VOID Stamp</h3>
+						<p style="color: var(--text-dim); font-size: 0.9rem">
+							Total digital erasure. When a file is compromised beyond repair,
+							execute VOID protocol immediately.
+						</p>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- Archives Section -->
+		<section id="archives">
+			<div class="container">
+				<h2
+					style="
+						font-family: var(--font-head);
+						font-size: 2.5rem;
+						margin-bottom: 3rem;
+						text-transform: uppercase;
+					">
+					Secure Archives
+				</h2>
+
+				<div class="archive-item hover-trigger">
+					<div class="archive-meta">CH.01</div>
+					<div class="archive-title">
+						The <span class="redact">Epstein</span> Files
+					</div>
+					<div class="archive-status">LOCKED</div>
+				</div>
+
+				<div class="archive-item hover-trigger">
+					<div class="archive-meta">CH.02</div>
+					<div class="archive-title">The Marrow Clinic</div>
+					<div class="archive-status" style="color: var(--accent-cyan)">
+						LEAKED
+					</div>
+				</div>
+
+				<div class="archive-item hover-trigger">
+					<div class="archive-meta">CH.03</div>
+					<div class="archive-title">
+						Project <span class="redact">Lantern</span>
+					</div>
+					<div class="archive-status">LOCKED</div>
+				</div>
+
+				<div class="archive-item hover-trigger">
+					<div class="archive-meta">CH.04</div>
+					<div class="archive-title">Total Control</div>
+					<div class="archive-status">CORRUPTED</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- Footer -->
+		<footer>
+			<div class="container">
+				<div class="footer-logo">REDACTED</div>
+				<p style="color: var(--text-dim); margin-top: 1rem; font-size: 0.8rem">
+					Bureau of Records Integrity // Terminal Node Zero<br />
+					<span class="uv-text">They are watching you.</span>
+				</p>
+				<div style="margin-top: 3rem; opacity: 0.3; font-size: 0.7rem">
+					&copy; 2025 DIGITAL FUTURE LABS. ALL RIGHTS RESERVED.
+				</div>
+			</div>
+		</footer>
+
+		<script>
+			/**
+			 * 1. DATA STREAM BACKGROUND (Canvas)
+			 * Creates a network of nodes and lines to simulate a data connection.
+			 */
+			const canvas = document.getElementById("data-stream")
+			const ctx = canvas.getContext("2d")
+			let width, height
+			let particles = []
+
+			function resize() {
+				width = canvas.width = window.innerWidth
+				height = canvas.height = window.innerHeight
+			}
+
+			class Particle {
+				constructor() {
+					this.x = Math.random() * width
+					this.y = Math.random() * height
+					this.vx = (Math.random() - 0.5) * 0.5
+					this.vy = (Math.random() - 0.5) * 0.5
+					this.size = Math.random() * 2
+				}
+				update() {
+					this.x += this.vx
+					this.y += this.vy
+					if (this.x < 0 || this.x > width) this.vx *= -1
+					if (this.y < 0 || this.y > height) this.vy *= -1
+				}
+				draw() {
+					ctx.fillStyle = "rgba(255, 255, 255, 0.15)"
+					ctx.beginPath()
+					ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+					ctx.fill()
+				}
+			}
+
+			function initParticles() {
+				particles = []
+				const count = Math.min(window.innerWidth / 10, 100)
+				for (let i = 0; i < count; i++) particles.push(new Particle())
+			}
+
+			function animateParticles() {
+				ctx.clearRect(0, 0, width, height)
+
+				// Draw lines
+				particles.forEach((p, index) => {
+					p.update()
+					p.draw()
+					for (let j = index + 1; j < particles.length; j++) {
+						const p2 = particles[j]
+						const dx = p.x - p2.x
+						const dy = p.y - p2.y
+						const dist = Math.sqrt(dx * dx + dy * dy)
+						if (dist < 150) {
+							ctx.strokeStyle = `rgba(255, 42, 42, ${0.1 - dist / 1500})`
+							ctx.lineWidth = 1
+							ctx.beginPath()
+							ctx.moveTo(p.x, p.y)
+							ctx.lineTo(p2.x, p2.y)
+							ctx.stroke()
+						}
+					}
+				})
+				requestAnimationFrame(animateParticles)
+			}
+
+			window.addEventListener("resize", () => {
+				resize()
+				initParticles()
+			})
+			resize()
+			initParticles()
+			animateParticles()
+
+			/**
+			 * 2. CUSTOM CURSOR
+			 */
+			const cursorDot = document.getElementById("cursor-dot")
+			const cursorRing = document.getElementById("cursor-ring")
+
+			document.addEventListener("mousemove", (e) => {
+				cursorDot.style.left = e.clientX + "px"
+				cursorDot.style.top = e.clientY + "px"
+
+				// Add slight delay to ring for fluid feel
+				setTimeout(() => {
+					cursorRing.style.left = e.clientX + "px"
+					cursorRing.style.top = e.clientY + "px"
+				}, 50)
+			})
+
+			// Hover effect
+			document.querySelectorAll(".hover-trigger").forEach((el) => {
+				el.addEventListener("mouseenter", () =>
+					cursorRing.classList.add("hovered")
+				)
+				el.addEventListener("mouseleave", () =>
+					cursorRing.classList.remove("hovered")
+				)
+			})
+
+			/**
+			 * 3. TYPEWRITER EFFECT
+			 */
+			const textToType = `Effective immediately, all references to THE RESISTANCE must be expunged from daily feeds. \n\nWe have detected unauthorized leaks in Sector 4. Any deviation from the OFFICIAL NARRATIVE will result in immediate termination of employment and LIFE privileges. \n\nObey. Redact. Survive.`
+
+			const typeContainer = document.getElementById("typewriter")
+			let typeIndex = 0
+
+			function typeWriter() {
+				if (typeIndex < textToType.length) {
+					const char = textToType.charAt(typeIndex)
+					typeContainer.innerHTML += char === "\n" ? "<br>" : char
+					typeIndex++
+					setTimeout(typeWriter, 30) // Typing speed
+				}
+			}
+
+			// Trigger typing when visible
+			const observer = new IntersectionObserver((entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						typeWriter()
+						observer.unobserve(entry.target)
+					}
+				})
+			})
+			observer.observe(document.querySelector(".typewriter-container"))
+
+			/**
+			 * 4. UI TOGGLE LOGIC (Override & UV)
+			 */
+
+			// UV Filter Toggle
+			const uvSwitch = document.getElementById("uv-switch")
+			const uvCheckbox = uvSwitch.querySelector(".toggle-checkbox")
+
+			uvSwitch.addEventListener("click", (e) => {
+				// Toggle checkbox if the click wasn't directly on it
+				if (e.target !== uvCheckbox) {
+					uvCheckbox.checked = !uvCheckbox.checked
+				}
+
+				if (uvCheckbox.checked) {
+					document.body.classList.add("uv-mode")
+					document.getElementById("uv-card").classList.add("active-tool")
+				} else {
+					document.body.classList.remove("uv-mode")
+					document.getElementById("uv-card").classList.remove("active-tool")
+				}
+			})
+
+			// Override/Decypher Toggle
+			const overrideToggle = document.getElementById("override-toggle")
+			overrideToggle.addEventListener("change", (e) => {
+				if (e.target.checked) {
+					document.body.classList.add("override-active")
+				} else {
+					document.body.classList.remove("override-active")
+				}
+			})
+
+			/**
+			 * 5. NAV SCROLL EFFECT
+			 */
+			window.addEventListener("scroll", () => {
+				const nav = document.getElementById("navbar")
+				if (window.scrollY > 50) {
+					nav.classList.add("scrolled")
+				} else {
+					nav.classList.remove("scrolled")
+				}
+			})
+		</script>
+	</body>
+</html>

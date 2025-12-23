@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>REDACTED - The Game</title>
+
+		<!-- Preconnect for fonts -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Oswald:wght@400;700&display=swap"
+			rel="stylesheet" />
+
+		<style>
+			:root {
+				--bg-dark: #050505;
+				--bg-paper: #f4f1ea;
+				--text-primary: #e5e5e5;
+				--text-muted: #888;
+				--accent-red: #d01010;
+				--accent-red-dark: #8a0b0b;
+				--accent-gold: #c9a227;
+				--font-heading: "Oswald", sans-serif;
+				--font-typewriter: "Special Elite", cursive;
+				--font-mono: "Courier Prime", monospace;
+			}
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			html {
+				scroll-behavior: smooth;
+			}
+
+			body {
+				background-color: var(--bg-dark);
+				color: var(--text-primary);
+				font-family: var(--font-mono);
+				line-height: 1.6;
+				overflow-x: hidden;
+			}
+
+			/* --- FX Layers --- */
+			.crt-lines {
+				pointer-events: none;
+				position: fixed;
+				inset: 0;
+				background: linear-gradient(
+					rgba(18, 16, 16, 0) 50%,
+					rgba(0, 0, 0, 0.25) 50%
+				);
+				background-size: 100% 4px;
+				z-index: 1000;
+				opacity: 0.6;
+			}
+
+			.vignette {
+				pointer-events: none;
+				position: fixed;
+				inset: 0;
+				background: radial-gradient(
+					circle at center,
+					transparent 50%,
+					black 120%
+				);
+				z-index: 1001;
+			}
+
+			.noise {
+				position: fixed;
+				inset: 0;
+				pointer-events: none;
+				z-index: 999;
+				opacity: 0.05;
+				background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+			}
+
+			/* --- Layout --- */
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+				padding: 0 2rem;
+			}
+
+			section {
+				padding: 6rem 0;
+			}
+
+			/* --- Typography --- */
+			h1,
+			h2,
+			h3 {
+				font-family: var(--font-heading);
+				text-transform: uppercase;
+				line-height: 1.1;
+			}
+
+			.typewriter-text {
+				font-family: var(--font-typewriter);
+			}
+
+			.censor-bar {
+				background-color: var(--text-primary);
+				color: var(--bg-dark);
+				padding: 0 0.2em;
+				position: relative;
+				display: inline-block;
+			}
+
+			.censor-bar.revealed {
+				background-color: transparent;
+				color: var(--text-primary);
+			}
+
+			/* --- Navigation --- */
+			nav {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				padding: 2rem;
+				z-index: 100;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				mix-blend-mode: difference;
+			}
+
+			.nav-logo {
+				font-family: var(--font-typewriter);
+				font-weight: bold;
+				font-size: 1.2rem;
+				letter-spacing: 0.1em;
+				color: white;
+				text-decoration: none;
+			}
+
+			.nav-links {
+				display: flex;
+				gap: 2rem;
+			}
+
+			.nav-btn {
+				color: white;
+				text-decoration: none;
+				text-transform: uppercase;
+				font-size: 0.8rem;
+				letter-spacing: 0.2em;
+				position: relative;
+			}
+
+			.nav-btn::after {
+				content: "";
+				position: absolute;
+				bottom: -5px;
+				left: 0;
+				width: 0;
+				height: 2px;
+				background-color: var(--accent-red);
+				transition: width 0.3s ease;
+			}
+
+			.nav-btn:hover::after {
+				width: 100%;
+			}
+
+			/* --- Hero Section --- */
+			.hero {
+				height: 100vh;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+				text-align: center;
+				position: relative;
+			}
+
+			.logo-wrapper {
+				position: relative;
+				display: inline-block;
+				margin-bottom: 2rem;
+			}
+
+			.logo-text {
+				font-family: var(--font-heading);
+				font-size: clamp(4rem, 15vw, 10rem);
+				font-weight: 700;
+				color: var(--accent-red);
+				letter-spacing: 0.1em;
+				line-height: 1;
+				text-transform: uppercase;
+				position: relative;
+				z-index: 1;
+				user-select: none;
+			}
+
+			.redaction-overlay {
+				position: absolute;
+				top: -15%;
+				left: -5%;
+				width: 110%;
+				height: 130%;
+				background: black;
+				transform-origin: left;
+				animation: redact-swish 4s cubic-bezier(0.22, 1, 0.36, 1) infinite
+					alternate;
+				z-index: 2;
+			}
+
+			@keyframes redact-swish {
+				0%,
+				15% {
+					transform: scaleX(0);
+				}
+				45%,
+				55% {
+					transform: scaleX(1);
+				}
+				85%,
+				100% {
+					transform: scaleX(0);
+				}
+			}
+
+			.hero-tagline {
+				margin-top: 1rem;
+				font-size: 1.25rem;
+				letter-spacing: 0.1em;
+				color: var(--text-muted);
+				opacity: 0;
+				animation: fade-in-up 1s ease 0.5s forwards;
+			}
+
+			.cta-btn {
+				margin-top: 3rem;
+				background: var(--accent-red);
+				color: white;
+				border: none;
+				padding: 1rem 3rem;
+				font-family: var(--font-typewriter);
+				font-size: 1.2rem;
+				cursor: pointer;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				clip-path: polygon(
+					10px 0,
+					100% 0,
+					100% calc(100% - 10px),
+					calc(100% - 10px) 100%,
+					0 100%,
+					0 10px
+				);
+				transition: all 0.3s ease;
+				text-decoration: none;
+				display: inline-block;
+				opacity: 0;
+				animation: fade-in-up 1s ease 0.8s forwards;
+			}
+
+			.cta-btn:hover {
+				background: var(--accent-red-dark);
+				transform: translateY(-2px);
+				box-shadow: 0 0 20px rgba(208, 16, 16, 0.4);
+			}
+
+			@keyframes fade-in-up {
+				from {
+					opacity: 0;
+					transform: translateY(20px);
+				}
+				to {
+					opacity: 1;
+					transform: translateY(0);
+				}
+			}
+
+			/* --- About Section --- */
+			.about {
+				background: #0a0a0a;
+				position: relative;
+				border-top: 1px solid #222;
+			}
+
+			.folder-tab {
+				position: absolute;
+				top: -30px;
+				left: 10%;
+				background: #0a0a0a;
+				border: 1px solid #222;
+				border-bottom: none;
+				padding: 0.5rem 2rem;
+				font-family: var(--font-typewriter);
+				font-size: 0.8rem;
+				color: var(--text-muted);
+				text-transform: uppercase;
+			}
+
+			.grid-2 {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 4rem;
+				align-items: center;
+			}
+
+			@media (max-width: 768px) {
+				.grid-2 {
+					grid-template-columns: 1fr;
+				}
+			}
+
+			.paper-sheet {
+				background: var(--bg-paper);
+				color: #111;
+				padding: 3rem;
+				transform: rotate(-1deg);
+				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+				position: relative;
+			}
+
+			.paper-sheet::before {
+				content: "TOP SECRET";
+				position: absolute;
+				top: 2rem;
+				right: 2rem;
+				border: 2px solid var(--accent-red);
+				color: var(--accent-red);
+				padding: 0.2rem 1rem;
+				font-family: var(--font-heading);
+				font-weight: bold;
+				transform: rotate(15deg);
+				opacity: 0.7;
+			}
+
+			.paper-sheet h3 {
+				font-family: var(--font-typewriter);
+				border-bottom: 2px solid #ccc;
+				padding-bottom: 0.5rem;
+				margin-bottom: 1.5rem;
+			}
+
+			.text-highlight {
+				background: rgba(0, 0, 0, 0.1);
+			}
+
+			/* --- Footer --- */
+			footer {
+				padding: 4rem 0;
+				text-align: center;
+				background: #020202;
+				border-top: 1px solid #222;
+			}
+
+			.footer-logo {
+				font-family: var(--font-heading);
+				font-size: 2rem;
+				color: #333;
+				margin-bottom: 1rem;
+				user-select: none;
+			}
+
+			.footer-links {
+				display: flex;
+				justify-content: center;
+				gap: 2rem;
+				margin-bottom: 2rem;
+			}
+
+			.footer-links a {
+				color: var(--text-muted);
+				text-decoration: none;
+				font-size: 0.9rem;
+			}
+
+			.footer-legal {
+				font-size: 0.7rem;
+				color: #444;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- FX Overlays -->
+		<div class="crt-lines"></div>
+		<div class="vignette"></div>
+		<div class="noise"></div>
+
+		<nav>
+			<a href="#" class="nav-logo">THE BUREAU</a>
+			<div class="nav-links">
+				<a href="#mission" class="nav-btn">Mission</a>
+				<a href="#evidence" class="nav-btn">Evidence</a>
+				<a href="#join" class="nav-btn">Join</a>
+			</div>
+		</nav>
+
+		<section class="hero">
+			<div class="container">
+				<div class="logo-wrapper">
+					<div class="logo-text">REDACTED</div>
+					<div class="redaction-overlay"></div>
+				</div>
+
+				<h2 class="hero-tagline typewriter-text">
+					Truth is
+					<span style="background: white; color: black; padding: 0 5px"
+						>SUBJECTIVE</span
+					>
+				</h2>
+
+				<br />
+				<p style="max-width: 600px; margin: 1rem auto; color: #aaa">
+					Play as a government censor in a dystopian surveillance state. Your
+					marker is your weapon. Your conscience is your weakness.
+				</p>
+
+				<a href="#" class="cta-btn">Start Redacting</a>
+			</div>
+		</section>
+
+		<section class="about" id="mission">
+			<div class="folder-tab">CASE FILE: 839-2A</div>
+			<div class="container">
+				<div class="grid-2">
+					<div>
+						<h2 style="font-size: 3rem; margin-bottom: 1rem">
+							Protocol <span style="color: var(--accent-red)">Omega</span>
+						</h2>
+						<p style="margin-bottom: 1.5rem">
+							The citizens believe they are free. It is your job to maintain
+							that illusion. Review communications, photos, and reports.
+							<span style="color: var(--accent-red)">Remove</span> anything that
+							contradicts the official narrative.
+						</p>
+						<p style="margin-bottom: 1.5rem">
+							> Analyze documents for dissent.<br />
+							> Censor sensitive keywords.<br />
+							> Report suspicious individuals.<br />
+							> Keep your family safe.
+						</p>
+					</div>
+
+					<div class="paper-sheet">
+						<h3>EMPLOYEE MANDATE</h3>
+						<p>
+							<strong>DATE:</strong> [REDACTED]<br />
+							<strong>TO:</strong> CENSOR CLASS-C<br />
+							<strong>SUBJECT:</strong> COMPLIANCE
+						</p>
+						<br />
+						<p>
+							You are hereby ordered to remove all references to
+							<span style="background: black; color: black"
+								>THE RESISTANCE</span
+							>
+							from the daily news feed. Failure to comply will result in
+							immediate
+							<span style="background: black; color: black">TERMINATION</span>.
+						</p>
+						<br />
+						<p>Remember: Ignorance is Strength. Silence is Safety.</p>
+						<div
+							style="
+								margin-top: 2rem;
+								font-family: 'Mrs Saint Delafield', cursive;
+								font-size: 1.5rem;
+								transform: rotate(-5deg);
+								color: darkblue;
+							">
+							Director H.
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<footer>
+			<div class="container">
+				<div class="footer-logo">REDACTED</div>
+				<div class="footer-links">
+					<a href="#">Press Kit</a>
+					<a href="#">Privacy Policy</a>
+					<a href="#">Terms of Service</a>
+				</div>
+				<div class="footer-legal">
+					&copy; 2025 The Bureau. All rights reserved. <br />
+					Unauthorized access is a federal offense.
+				</div>
+			</div>
+		</footer>
+
+		<script>
+			// Optional: Random glitch effect for text
+			const glitchTexts = document.querySelectorAll(".nav-logo")
+
+			setInterval(() => {
+				glitchTexts.forEach((el) => {
+					if (Math.random() > 0.95) {
+						el.style.transform = `translate(${Math.random() * 2 - 1}px, ${
+							Math.random() * 2 - 1
+						}px)`
+						setTimeout(() => {
+							el.style.transform = "none"
+						}, 50)
+					}
+				})
+			}, 100)
+		</script>
+	</body>
+</html>

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>REDACTED // Bureau of Records Integrity</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Inter:wght@400;600;800&family=Special+Elite&display=swap"
+			rel="stylesheet" />
+		<style>
+			:root {
+				color-scheme: dark;
+				--bg: #050505;
+				--panel: #0d1117;
+				--accent: #f43f5e;
+				--accent-2: #22d3ee;
+				--text: #e7e5e4;
+				--muted: #9ca3af;
+				--paper: #f4f1ea;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				font-family: "Inter", sans-serif;
+				background: radial-gradient(
+						circle at 20% 20%,
+						rgba(34, 211, 238, 0.08),
+						transparent 45%
+					),
+					radial-gradient(
+						circle at 80% 0%,
+						rgba(244, 63, 94, 0.12),
+						transparent 45%
+					),
+					var(--bg);
+				color: var(--text);
+				min-height: 100vh;
+			}
+
+			.grid-overlay {
+				position: fixed;
+				inset: 0;
+				background-image: linear-gradient(
+						to right,
+						rgba(255, 255, 255, 0.04) 1px,
+						transparent 1px
+					),
+					linear-gradient(
+						to bottom,
+						rgba(255, 255, 255, 0.04) 1px,
+						transparent 1px
+					);
+				background-size: 40px 40px;
+				pointer-events: none;
+				z-index: 0;
+			}
+
+			.scanlines {
+				position: fixed;
+				inset: 0;
+				pointer-events: none;
+				background: linear-gradient(
+					to bottom,
+					rgba(255, 255, 255, 0.02),
+					rgba(255, 255, 255, 0.02) 50%,
+					rgba(0, 0, 0, 0.2) 50%,
+					rgba(0, 0, 0, 0.2)
+				);
+				background-size: 100% 4px;
+				opacity: 0.4;
+				z-index: 3;
+			}
+
+			.page {
+				position: relative;
+				z-index: 1;
+				max-width: 1200px;
+				margin: 0 auto;
+				padding: 48px 24px 80px;
+			}
+
+			header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 24px;
+				padding: 12px 0 32px;
+				border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+			}
+
+			.wordmark {
+				font-family: "Special Elite", cursive;
+				letter-spacing: 0.4em;
+				font-size: 20px;
+				text-transform: uppercase;
+				color: var(--accent);
+			}
+
+			.logo-redaction {
+				position: relative;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				padding: 18px 48px;
+				border-radius: 6px;
+				background: #0b0b0b;
+				overflow: hidden;
+				box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+				margin: 18px 0 12px;
+			}
+
+			.logo-redaction span {
+				font-family: "Special Elite", cursive;
+				font-size: clamp(2.4rem, 4vw, 4.6rem);
+				letter-spacing: 0.32em;
+				text-transform: uppercase;
+				color: #b91c1c;
+				text-shadow: 0 2px 10px rgba(185, 28, 28, 0.35);
+				position: relative;
+				z-index: 2;
+			}
+
+			.logo-redaction::after {
+				content: "";
+				position: absolute;
+				inset: 0;
+				background: linear-gradient(
+					90deg,
+					transparent 0%,
+					#000 20%,
+					#000 80%,
+					transparent 100%
+				);
+				transform: translateX(-120%);
+				animation: redact-sweep 3.5s ease-in-out infinite;
+				z-index: 1;
+				opacity: 0.95;
+			}
+
+			@keyframes redact-sweep {
+				0% {
+					transform: translateX(-120%);
+				}
+				45% {
+					transform: translateX(0%);
+				}
+				70% {
+					transform: translateX(120%);
+				}
+				100% {
+					transform: translateX(120%);
+				}
+			}
+
+			nav {
+				display: flex;
+				gap: 24px;
+				font-size: 14px;
+				text-transform: uppercase;
+				letter-spacing: 0.2em;
+				color: var(--muted);
+			}
+
+			nav a {
+				color: inherit;
+				text-decoration: none;
+			}
+
+			nav a:hover {
+				color: var(--text);
+			}
+
+			.hero {
+				display: grid;
+				grid-template-columns: 1.2fr 0.8fr;
+				gap: 48px;
+				margin-top: 56px;
+				align-items: center;
+			}
+
+			.hero h1 {
+				font-size: clamp(2.8rem, 4vw, 4.4rem);
+				margin: 0 0 12px;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+			}
+
+			.hero p {
+				font-size: 1.05rem;
+				line-height: 1.7;
+				color: #d6d3d1;
+				margin-bottom: 24px;
+			}
+
+			.badge {
+				font-family: "IBM Plex Mono", monospace;
+				font-size: 0.75rem;
+				letter-spacing: 0.2em;
+				text-transform: uppercase;
+				background: rgba(244, 63, 94, 0.18);
+				color: var(--accent);
+				padding: 6px 12px;
+				border: 1px solid rgba(244, 63, 94, 0.4);
+				display: inline-flex;
+				gap: 8px;
+				align-items: center;
+			}
+
+			.cta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 16px;
+			}
+
+			.btn {
+				padding: 12px 20px;
+				border-radius: 6px;
+				border: 1px solid transparent;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.18em;
+				font-size: 0.75rem;
+				cursor: pointer;
+				text-decoration: none;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.btn-primary {
+				background: var(--accent);
+				color: white;
+				box-shadow: 0 18px 40px rgba(244, 63, 94, 0.3);
+			}
+
+			.btn-outline {
+				border-color: rgba(148, 163, 184, 0.4);
+				color: var(--text);
+				background: transparent;
+			}
+
+			.terminal-card {
+				background: #0b0f14;
+				border: 1px solid rgba(148, 163, 184, 0.25);
+				padding: 24px;
+				border-radius: 12px;
+				box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+			}
+
+			.terminal-card h3 {
+				font-family: "IBM Plex Mono", monospace;
+				font-size: 0.9rem;
+				letter-spacing: 0.2em;
+				text-transform: uppercase;
+				margin-bottom: 16px;
+				color: var(--accent-2);
+			}
+
+			.terminal-lines {
+				font-family: "IBM Plex Mono", monospace;
+				font-size: 0.85rem;
+				color: #94a3b8;
+				line-height: 1.6;
+			}
+
+			.section {
+				margin-top: 80px;
+			}
+
+			.section h2 {
+				font-size: 2rem;
+				text-transform: uppercase;
+				letter-spacing: 0.12em;
+				margin-bottom: 20px;
+			}
+
+			.section p {
+				color: #cbd5f5;
+				line-height: 1.7;
+			}
+
+			.grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+				gap: 24px;
+			}
+
+			.card {
+				background: var(--panel);
+				border: 1px solid rgba(148, 163, 184, 0.2);
+				border-radius: 12px;
+				padding: 20px;
+				min-height: 180px;
+				box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+			}
+
+			.card h3 {
+				margin-top: 0;
+				font-size: 1.05rem;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+				color: var(--accent-2);
+			}
+
+			.chapter-timeline {
+				display: grid;
+				gap: 18px;
+			}
+
+			.chapter {
+				background: rgba(244, 63, 94, 0.1);
+				border: 1px solid rgba(244, 63, 94, 0.3);
+				padding: 18px 20px;
+				border-radius: 10px;
+			}
+
+			.chapter strong {
+				display: block;
+				font-size: 1.1rem;
+				letter-spacing: 0.16em;
+				text-transform: uppercase;
+				margin-bottom: 8px;
+			}
+
+			.paper-dossier {
+				background: var(--paper);
+				color: #1f2937;
+				border-radius: 12px;
+				padding: 24px;
+				position: relative;
+				box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+			}
+
+			.paper-dossier::before {
+				content: "TOP SECRET";
+				position: absolute;
+				top: 16px;
+				right: 16px;
+				border: 2px solid #dc2626;
+				color: #dc2626;
+				padding: 4px 8px;
+				font-family: "Special Elite", cursive;
+				transform: rotate(-6deg);
+			}
+
+			.paper-dossier h3 {
+				font-family: "Special Elite", cursive;
+				font-size: 1.4rem;
+				margin-top: 0;
+			}
+
+			.dossier-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 16px;
+				margin-top: 16px;
+			}
+
+			.dossier-item {
+				background: rgba(15, 23, 42, 0.08);
+				padding: 12px;
+				border-radius: 8px;
+				font-family: "IBM Plex Mono", monospace;
+				font-size: 0.8rem;
+			}
+
+			footer {
+				margin-top: 90px;
+				border-top: 1px solid rgba(148, 163, 184, 0.2);
+				padding-top: 24px;
+				color: var(--muted);
+				font-size: 0.8rem;
+				text-transform: uppercase;
+				letter-spacing: 0.2em;
+			}
+
+			@media (max-width: 900px) {
+				.hero {
+					grid-template-columns: 1fr;
+				}
+
+				header {
+					flex-direction: column;
+					align-items: flex-start;
+				}
+
+				nav {
+					flex-wrap: wrap;
+				}
+
+				.logo-redaction {
+					width: 100%;
+					justify-content: center;
+					padding: 16px 24px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="grid-overlay"></div>
+		<div class="scanlines"></div>
+		<div class="page">
+			<header>
+				<div class="wordmark">REDACTED</div>
+				<nav>
+					<a href="#briefing">Briefing</a>
+					<a href="#tools">Tools</a>
+					<a href="#chapters">Chapters</a>
+					<a href="#systems">Systems</a>
+					<a href="#join">Enlist</a>
+				</nav>
+			</header>
+
+			<section class="hero">
+				<div>
+					<div class="badge">Bureau of Records Integrity // Eyes Only</div>
+					<div class="logo-redaction" aria-label="Redacted logo animation">
+						<span>REDACTED</span>
+					</div>
+					<h1>Control the narrative. Redact the truth.</h1>
+					<p>
+						REDACTED is a moody, bureaucratic thriller where you process
+						classified case files under a relentless clock. Use precision tools,
+						obey (or defy) shadow directives, and shape public reality across
+						four escalating dossiers. Every stroke alters the archive—and your
+						fate.
+					</p>
+					<div class="cta">
+						<a class="btn btn-primary" href="#join">Begin Assignment</a>
+						<a class="btn btn-outline" href="#briefing">Read the Briefing</a>
+					</div>
+				</div>
+				<div class="terminal-card">
+					<h3>Operational Snapshot</h3>
+					<div class="terminal-lines">
+						▸ Role: Records Analyst, Bureau of Records Integrity<br />
+						▸ Objective: Redact sensitive entities while exposing approved
+						targets<br />
+						▸ Tools: Marker, Highlight, UV, Analyzer, VOID, Omni Lens<br />
+						▸ Stakes: Bribes, penalties, moral drift, daily audits<br />
+						▸ Coverage: 4 chapters / 20 days / dozens of documents
+					</div>
+				</div>
+			</section>
+
+			<section class="section" id="briefing">
+				<h2>Central Directive</h2>
+				<p>
+					You are the final checkpoint before the public sees anything. Each day
+					you receive a case file, a briefing, and a list of redaction protocols
+					that evolve from mundane cover-ups to existential containment. Between
+					dossiers, a live news feed exposes the ripple effects of your work.
+					The truth is malleable—so are your ethics.
+				</p>
+				<div class="grid" style="margin-top: 28px">
+					<div class="card">
+						<h3>Document Intelligence</h3>
+						<p>
+							Decode passenger logs, clinical reports, surveillance readouts,
+							and containment memos—all with hidden metadata and UV secrets.
+						</p>
+					</div>
+					<div class="card">
+						<h3>Shadow Directives</h3>
+						<p>
+							Special orders reward obedience with bribes and punish defiance
+							with fines, testing your loyalty every shift.
+						</p>
+					</div>
+					<div class="card">
+						<h3>Live Audits</h3>
+						<p>
+							Every mistake creates an audit log with penalties for missed
+							redactions, overreach, or illegal exposure.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="section" id="tools">
+				<h2>Field Tools</h2>
+				<div class="grid">
+					<div class="card">
+						<h3>Marker &amp; Eraser</h3>
+						<p>
+							Black out sensitive names, IDs, and locations. Undo missteps
+							before the audit team finds them.
+						</p>
+					</div>
+					<div class="card">
+						<h3>Highlighter &amp; Recovery</h3>
+						<p>
+							Flag key lines for escalation or reintroduce cleared facts to the
+							public record.
+						</p>
+					</div>
+					<div class="card">
+						<h3>Analyzer &amp; UV Light</h3>
+						<p>
+							Reveal invisible ink, metadata, and hidden context to outmaneuver
+							traps and false positives.
+						</p>
+					</div>
+					<div class="card">
+						<h3>VOID &amp; Omni Lens</h3>
+						<p>
+							Neutralize contaminated files instantly or unlock the Omni Lens to
+							expose every critical target.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="section" id="chapters">
+				<h2>Four Chapters of Escalation</h2>
+				<div class="chapter-timeline">
+					<div class="chapter">
+						<strong>Chapter 01 // The Epstein Files</strong>
+						A recovered cache of flight logs and financial ledgers. Powerful
+						names surface. The bureau demands containment.
+					</div>
+					<div class="chapter">
+						<strong>Chapter 02 // The Marrow Clinic</strong>
+						Medical oversight collapses under scrutiny. Mask the experiments,
+						document the anomalies, and protect the program.
+					</div>
+					<div class="chapter">
+						<strong>Chapter 03 // Project Lantern</strong>
+						Surveillance operations go public. Declassify the harmless data
+						while burying the real infrastructure.
+					</div>
+					<div class="chapter">
+						<strong>Chapter 04 // Total Control</strong>
+						The EIDOLON meme-hazard threatens reality. Contaminated records must
+						be VOIDED before they spread.
+					</div>
+				</div>
+			</section>
+
+			<section class="section" id="systems">
+				<h2>Systems &amp; Progression</h2>
+				<div class="grid">
+					<div class="card">
+						<h3>Daily Ledger</h3>
+						<p>
+							Balance wages, bribes, infractions, and penalties. Every decision
+							impacts your total funds and moral drift.
+						</p>
+					</div>
+					<div class="card">
+						<h3>Upgrade Lab</h3>
+						<p>
+							Spend earnings on black-market upgrades: UV light, Omni Lens,
+							auto-submit processors, or illicit kickbacks.
+						</p>
+					</div>
+					<div class="card">
+						<h3>Adaptive Rules</h3>
+						<p>
+							Each day brings new rule sets: redact VIPs, expose whistleblowers,
+							or trigger total blackout protocols.
+						</p>
+					</div>
+				</div>
+				<div class="paper-dossier" style="margin-top: 32px">
+					<h3>Analyst Dossier</h3>
+					<p>
+						The bureau tracks your efficiency, discretion, and loyalty. Redact
+						too little and sensitive intel leaks. Redact too much and audits
+						accuse you of carelessness. The safest path is rarely the most
+						honest.
+					</p>
+					<div class="dossier-grid">
+						<div class="dossier-item">Case Files Processed: 20</div>
+						<div class="dossier-item">
+							Primary Tools: Marker, Highlighter, Analyzer
+						</div>
+						<div class="dossier-item">
+							Risk Flags: Exposure, Over-Redaction, VOID Events
+						</div>
+						<div class="dossier-item">
+							Morality Axis: Integrity ↔ Corruption
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="section" id="join">
+				<h2>Enlist Today</h2>
+				<p>
+					The Bureau of Records Integrity is accepting new analysts. Your
+					terminal is online. Your first dossier is waiting.
+				</p>
+				<div class="cta" style="margin-top: 24px">
+					<a class="btn btn-primary" href="#">Launch REDACTED</a>
+					<a class="btn btn-outline" href="#">Download Press Kit</a>
+				</div>
+			</section>
+
+			<footer>
+				Bureau of Records Integrity // Confidential Simulation // Build Final
+			</footer>
+		</div>
+	</body>
+</html>
